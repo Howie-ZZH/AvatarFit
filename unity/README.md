@@ -62,6 +62,42 @@ event: JSON string
 
 移动端原生层需要把 Unity 的事件从 `Debug.Log("UNITY_EVENT:...")` 替换或转发为 EventChannel 输出。
 
+当前 `UnityBridge.cs` 已在 Android 非 Editor 环境调用：
+
+```text
+com.example.fitgame_app.MainActivity.emitUnityEvent(json)
+```
+
+## Android 导出位置
+
+从 Unity 导出 Android Library 后，把导出的 `unityLibrary` 放到：
+
+```text
+../app/android/unityLibrary/
+```
+
+Flutter Android 工程会自动发现该目录并引入模块。Unity 场景内需要有名为 `UnityBridge` 的 GameObject，并挂载 `UnityBridge.cs`，因为 Android 原生层会调用：
+
+```text
+UnitySendMessage("UnityBridge", "PostMessage", json)
+```
+
+## iOS 导出位置
+
+从 Unity 导出 iOS Library 后，把导出文件放到：
+
+```text
+../app/ios/UnityLibrary/
+```
+
+Runner 侧已经实现：
+
+- `fitgame/unity_view` 的 `UiKitView` 宿主
+- `fitgame/unity_commands` 到 UnityFramework 的 `sendMessageToGOWithName:functionName:message:`
+- `FitGameEmitUnityEvent(json)` 到 Flutter `fitgame/unity_events`
+
+Xcode 中还需要把 `UnityFramework.framework` embed 到 Runner target，并复制 Unity `Data` 资源到 App bundle。
+
 ## 规格文档
 
 详见 [../docs/UNITY_SPEC.md](../docs/UNITY_SPEC.md)。

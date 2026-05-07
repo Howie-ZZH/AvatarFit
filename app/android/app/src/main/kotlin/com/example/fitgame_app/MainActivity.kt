@@ -40,19 +40,42 @@ class MainActivity : FlutterActivity() {
                 eventSink = null
             }
         })
+
+        flutterEngine
+            .platformViewsController
+            .registry
+            .registerViewFactory(
+                UNITY_VIEW_TYPE,
+                UnityPlatformViewFactory(this)
+            )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        UnityRuntime.resume()
+    }
+
+    override fun onPause() {
+        UnityRuntime.pause()
+        super.onPause()
+    }
+
+    override fun onDestroy() {
+        UnityRuntime.destroy()
+        super.onDestroy()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        UnityRuntime.windowFocusChanged(hasFocus)
     }
 
     private fun postUnityMessage(message: String) {
-        val delivered = runCatching {
-            val unityPlayer = Class.forName("com.unity3d.player.UnityPlayer")
-            val unitySendMessage = unityPlayer.getMethod(
-                "UnitySendMessage",
-                String::class.java,
-                String::class.java,
-                String::class.java
-            )
-            unitySendMessage.invoke(null, UNITY_BRIDGE_OBJECT, UNITY_BRIDGE_METHOD, message)
-        }.isSuccess
+        val delivered = UnityRuntime.postMessage(
+            gameObject = UNITY_BRIDGE_OBJECT,
+            method = UNITY_BRIDGE_METHOD,
+            message = message
+        )
 
         if (!delivered) {
             emitUnityEvent(
@@ -75,6 +98,7 @@ class MainActivity : FlutterActivity() {
     companion object {
         private const val UNITY_COMMANDS_CHANNEL = "fitgame/unity_commands"
         private const val UNITY_EVENTS_CHANNEL = "fitgame/unity_events"
+        private const val UNITY_VIEW_TYPE = "fitgame/unity_view"
         private const val UNITY_BRIDGE_OBJECT = "UnityBridge"
         private const val UNITY_BRIDGE_METHOD = "PostMessage"
 

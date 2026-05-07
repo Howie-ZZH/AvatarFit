@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Runtime.InteropServices;
 
 namespace FitGame.Bridge
 {
@@ -41,6 +42,14 @@ namespace FitGame.Bridge
                 + $"\"error\":{FormatNullable(error)}"
                 + "}";
             Debug.Log($"UNITY_EVENT:{json}");
+#if UNITY_ANDROID && !UNITY_EDITOR
+            using (var mainActivity = new AndroidJavaClass("com.example.fitgame_app.MainActivity"))
+            {
+                mainActivity.CallStatic("emitUnityEvent", json);
+            }
+#elif UNITY_IOS && !UNITY_EDITOR
+            FitGameEmitUnityEvent(json);
+#endif
         }
 
         private static string FormatNullable(string value)
@@ -54,5 +63,10 @@ namespace FitGame.Bridge
                 ? string.Empty
                 : value.Replace("\\", "\\\\").Replace("\"", "\\\"");
         }
+
+#if UNITY_IOS && !UNITY_EDITOR
+        [DllImport("__Internal")]
+        private static extern void FitGameEmitUnityEvent(string json);
+#endif
     }
 }

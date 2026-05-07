@@ -11,6 +11,10 @@ const String kStaticAccessToken = String.fromEnvironment(
   'FITGAME_ACCESS_TOKEN',
 );
 
+const bool kUseNativeUnityView = bool.fromEnvironment(
+  'FITGAME_USE_NATIVE_UNITY',
+);
+
 ApiClient createConfiguredApiClient({String? accessToken}) {
   final token = accessToken ?? kStaticAccessToken;
   return ApiClient(

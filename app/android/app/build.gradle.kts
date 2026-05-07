@@ -5,6 +5,8 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val hasUnityLibrary = rootProject.findProject(":unityLibrary") != null
+
 android {
     namespace = "com.example.fitgame_app"
     compileSdk = flutter.compileSdkVersion
@@ -36,6 +38,12 @@ android {
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
+    }
+}
+
+dependencies {
+    if (hasUnityLibrary) {
+        implementation(project(":unityLibrary"))
     }
 }
 

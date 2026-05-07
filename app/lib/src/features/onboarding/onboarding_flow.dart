@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../features/home/home_shell.dart';
 import '../../features/training/test_workout_page.dart';
+import '../../features/unity_bridge/native_unity_bridge_service.dart';
 import '../../features/unity_bridge/unity_avatar_view.dart';
 import '../../features/unity_bridge/unity_bridge_service.dart';
+import '../../api/api_config.dart';
 import '../../models/avatar_models.dart';
 import '../../models/onboarding_models.dart';
 import '../../services/auth_service.dart';
@@ -19,7 +21,9 @@ class OnboardingFlow extends StatefulWidget {
 }
 
 class _OnboardingFlowState extends State<OnboardingFlow> {
-  final UnityBridgeService _unity = MockUnityBridgeService();
+  final UnityBridgeService _unity = kUseNativeUnityView
+      ? NativeUnityBridgeService()
+      : MockUnityBridgeService();
   final AuthService _authService = createAuthService();
   AvatarState _avatar = const AvatarState();
   BodyProfileDraft _bodyProfile = const BodyProfileDraft();

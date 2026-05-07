@@ -68,22 +68,71 @@ event: JSON string
 
 ## 运行
 
-当前机器未安装 Flutter SDK。安装后在 `app/` 目录执行：
+在 `app/` 目录执行：
 
 ```bash
-flutter create .
 flutter pub get
 flutter run
 ```
 
-`flutter create .` 用于补齐 `android/`、`ios/` 等平台工程文件，不会替换现有 `lib/` 业务代码。
+使用真实后端：
+
+```bash
+flutter run \
+  --dart-define=FITGAME_USE_REMOTE_API=true \
+  --dart-define=FITGAME_API_BASE_URL=http://localhost:8080
+```
 
 ## 切换真实 Unity
 
-当前 `OnboardingFlow` 默认使用 `MockUnityBridgeService`。接入原生 Unity 模块后，将实例替换为：
+当前默认使用 Mock Unity。Android 接入真实 Unity 导出模块后，用 Dart define 切换：
 
-```dart
-final UnityBridgeService unity = NativeUnityBridgeService();
+```bash
+flutter run \
+  --dart-define=FITGAME_USE_NATIVE_UNITY=true
 ```
 
-原生 iOS / Android 需要把 `fitgame/unity_commands` 的 `postMessage` 转发给 Unity 场景里的 `UnityBridge.PostMessage`，并把 Unity 事件写入 `fitgame/unity_events`。
+真实 Unity 导出模块放置位置：
+
+```text
+app/android/unityLibrary/
+```
+
+Android Gradle 会在该目录存在时自动 `include(":unityLibrary")` 并让 `:app` 依赖它。Flutter 的 `UnityAvatarView` 会切换成 `AndroidView(viewType: "fitgame/unity_view")`，Android 原生层负责创建 UnityPlayer 并挂载到页面内。
+
+原生 Android 通道：
+
+- `fitgame/unity_commands`：Flutter 调用 `postMessage`，转发到 Unity 场景里的 `UnityBridge.PostMessage`
+- `fitgame/unity_events`：Unity 调用 `MainActivity.emitUnityEvent(json)`，回传给 Flutter
+
+如果 `FITGAME_USE_NATIVE_UNITY=true` 但没有 `unityLibrary`，页面会显示 Unity runtime 未接入，并通过事件流返回 `UNITY_UNAVAILABLE`。
+
+### iOS
+
+iOS 平台工程已生成，并注册了同一个 `fitgame/unity_view`。Flutter 的 `UnityAvatarView` 在 iOS 会切换为：
+
+```dart
+UiKitView(viewType: 'fitgame/unity_view')
+```
+
+iOS 原生层会动态查找并加载：
+
+```text
+Runner.app/Frameworks/UnityFramework.framework
+```
+
+Unity 导出文件先放到：
+
+```text
+app/ios/UnityLibrary/
+```
+
+然后在 Xcode 的 Runner target 中把 `UnityFramework.framework` 加入 `Frameworks, Libraries, and Embedded Content`，设置为 `Embed & Sign`，并把 Unity `Data` 资源复制到 App bundle。
+
+iOS 事件回传使用 Unity C# 调用：
+
+```csharp
+FitGameEmitUnityEvent(json)
+```
+
+对应 Swift 侧 `@_cdecl("FitGameEmitUnityEvent")` 会把事件写回 `fitgame/unity_events`。

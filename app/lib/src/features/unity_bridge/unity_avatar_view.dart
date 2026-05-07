@@ -1,7 +1,10 @@
 import 'dart:math' as math;
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../../api/api_config.dart';
 import '../../models/avatar_models.dart';
 
 class UnityAvatarView extends StatefulWidget {
@@ -46,48 +49,118 @@ class _UnityAvatarViewState extends State<UnityAvatarView>
     return SizedBox(
       height: height,
       width: double.infinity,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          color: Color(0xFF080A0D),
+      child: kUseNativeUnityView && (Platform.isAndroid || Platform.isIOS)
+          ? _NativeUnitySurface(
+              avatar: widget.avatar,
+              animationKey: widget.animationKey,
+            )
+          : _MockUnitySurface(
+              avatar: widget.avatar,
+              animationKey: widget.animationKey,
+              compact: widget.compact,
+              controller: _controller,
+            ),
+    );
+  }
+}
+
+class _NativeUnitySurface extends StatelessWidget {
+  const _NativeUnitySurface({
+    required this.avatar,
+    required this.animationKey,
+  });
+
+  final AvatarState avatar;
+  final String animationKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (Platform.isAndroid)
+          AndroidView(
+            viewType: 'fitgame/unity_view',
+            creationParams: _creationParams,
+            creationParamsCodec: const StandardMessageCodec(),
+          )
+        else
+          UiKitView(
+            viewType: 'fitgame/unity_view',
+            creationParams: _creationParams,
+            creationParamsCodec: const StandardMessageCodec(),
+          ),
+        Positioned(
+          left: 18,
+          top: 18,
+          child: _UnityBadge(animationKey: animationKey),
         ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _TrainingSpacePainter(),
-              ),
+      ],
+    );
+  }
+
+  Map<String, Object?> get _creationParams => {
+        'avatar': avatar.toUnityPayload(),
+        'animationKey': animationKey,
+      };
+}
+
+class _MockUnitySurface extends StatelessWidget {
+  const _MockUnitySurface({
+    required this.avatar,
+    required this.animationKey,
+    required this.compact,
+    required this.controller,
+  });
+
+  final AvatarState avatar;
+  final String animationKey;
+  final bool compact;
+  final AnimationController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Color(0xFF080A0D),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _TrainingSpacePainter(),
             ),
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                final lift = math.sin(_controller.value * math.pi) * 10;
-                return Transform.translate(
-                  offset: Offset(0, -lift),
-                  child: child,
-                );
-              },
-              child: _AvatarSilhouette(
-                energyState: widget.avatar.energyState,
-                animationKey: widget.animationKey,
-                compact: widget.compact,
-              ),
+          ),
+          AnimatedBuilder(
+            animation: controller,
+            builder: (context, child) {
+              final lift = math.sin(controller.value * math.pi) * 10;
+              return Transform.translate(
+                offset: Offset(0, -lift),
+                child: child,
+              );
+            },
+            child: _AvatarSilhouette(
+              energyState: avatar.energyState,
+              animationKey: animationKey,
+              compact: compact,
             ),
-            Positioned(
-              left: 18,
-              top: 18,
-              child: _UnityBadge(animationKey: widget.animationKey),
+          ),
+          Positioned(
+            left: 18,
+            top: 18,
+            child: _UnityBadge(animationKey: animationKey),
+          ),
+          Positioned(
+            right: 18,
+            bottom: 18,
+            child: Text(
+              'Lv.${avatar.level}  ${avatar.name}',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-            Positioned(
-              right: 18,
-              bottom: 18,
-              child: Text(
-                'Lv.${widget.avatar.level}  ${widget.avatar.name}',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
