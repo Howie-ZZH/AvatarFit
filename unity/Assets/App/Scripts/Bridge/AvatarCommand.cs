@@ -7,6 +7,5 @@ namespace FitGame.Bridge
     {
         public string type;
         public string requestId;
-        public string payload;
     }
 }

@@ -7,6 +7,11 @@ namespace FitGame.Bridge
     {
         [SerializeField] private AvatarCommandRouter commandRouter;
 
+        public void Bind(AvatarCommandRouter router)
+        {
+            commandRouter = router;
+        }
+
         private void Start()
         {
             DispatchEvent("UNITY_READY", string.Empty, "{}");

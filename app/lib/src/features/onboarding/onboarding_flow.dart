@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../features/home/home_shell.dart';
@@ -27,8 +29,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   final AuthService _authService = createAuthService();
   AvatarState _avatar = const AvatarState();
   BodyProfileDraft _bodyProfile = const BodyProfileDraft();
+  StreamSubscription? _unityEventsSubscription;
   String? _accessToken;
   String? _error;
+  String? _unityStatus;
   bool _isBusy = false;
   int _step = 0;
   String _goal = '减脂';
@@ -37,11 +41,22 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   @override
   void initState() {
     super.initState();
+    _unityEventsSubscription = _unity.events.listen((event) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _unityStatus = event.success
+            ? 'Unity: ${event.type}'
+            : 'Unity: ${event.type} ${event.error ?? ''}';
+      });
+    });
     _unity.setAvatarState(_avatar);
   }
 
   @override
   void dispose() {
+    _unityEventsSubscription?.cancel();
     _unity.dispose();
     super.dispose();
   }
@@ -158,6 +173,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       5 => _InitialAvatarStep(
           avatar: _avatar,
           goal: _goal,
+          unityStatus: _unityStatus,
           onStartWorkout: _next,
         ),
       6 => TestWorkoutPage(
@@ -651,11 +667,13 @@ class _InitialAvatarStep extends StatelessWidget {
   const _InitialAvatarStep({
     required this.avatar,
     required this.goal,
+    required this.unityStatus,
     required this.onStartWorkout,
   });
 
   final AvatarState avatar;
   final String goal;
+  final String? unityStatus;
   final VoidCallback onStartWorkout;
 
   @override
@@ -667,6 +685,10 @@ class _InitialAvatarStep extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           UnityAvatarView(avatar: avatar),
+          if (unityStatus != null) ...[
+            const SizedBox(height: 12),
+            _StatusLine(text: unityStatus!),
+          ],
           const SizedBox(height: 18),
           _AttributeGrid(attributes: avatar.attributes),
           const SizedBox(height: 22),
@@ -676,6 +698,37 @@ class _InitialAvatarStep extends StatelessWidget {
             label: const Text('开始 3 分钟测试训练'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF10141B),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF252B36)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Icon(
+              Icons.cable_rounded,
+              size: 18,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(text)),
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,6 @@
-# Unity
+# FitGame Unity Project
 
-Unity 3D 角色工程目录。
+Unity 3D 角色工程目录。当前目录已经是一个可被 Unity 打开的工程骨架。
 
 ## 职责
 
@@ -13,30 +13,103 @@ Unity 3D 角色工程目录。
 
 ## 当前交付
 
-已按 `../docs/UNITY_SPEC.md` 添加桥接脚本骨架：
+已按 `../docs/UNITY_SPEC.md` 添加：
 
 ```text
+Packages/
+ProjectSettings/
 Assets/App/Scripts/Bridge/
   UnityBridge.cs
   AvatarCommandRouter.cs
   AvatarCommand.cs
   AvatarEvent.cs
+Assets/App/Scripts/Avatar/
+Assets/App/Scripts/Data/
+Assets/App/Editor/
 ```
 
-`UnityBridge.PostMessage(string json)` 是 Flutter 原生层调用 Unity 的入口。当前 Router 已识别：
+`UnityBridge.PostMessage(string json)` 是 Flutter 原生层调用 Unity 的入口。当前 Router 已识别并驱动占位 Avatar：
 
 - `SET_AVATAR_STATE`
 - `PLAY_ANIMATION`
 - `START_EXERCISE`
 - `WORKOUT_COMPLETE`
 - `CHANGE_OUTFIT`
+- `CAPTURE_SHARE_IMAGE`
 
-真实 Unity 项目接入时，需要在 `AvatarHomeScene` 中创建一个 GameObject，挂载：
+## 如何打开
+
+用 Unity Hub 打开本目录：
+
+```text
+unity/
+```
+
+推荐 Unity 版本：
+
+```text
+2022.3 LTS
+```
+
+首次打开后，在 Unity 菜单执行：
+
+```text
+FitGame -> Create Avatar Demo Scene
+```
+
+这会生成：
+
+```text
+Assets/App/Scenes/AvatarHomeScene.unity
+```
+
+场景包含：
+
+- `UnityBridge`
+- `AvatarRoot`
+- 占位 3D 角色
+- 相机
+- 训练空间地面
+- 主光和轮廓光
+
+即使还没有真实 Humanoid 模型，也能先验证 Flutter -> Unity JSON 指令和 Unity -> Flutter 事件回传。
+
+## 导出
+
+Unity 菜单：
+
+```text
+FitGame -> Export Android Library
+FitGame -> Export iOS Library
+```
+
+导出目标：
+
+```text
+../app/android/unityLibrary/
+../app/ios/UnityLibrary/
+```
+
+Android 导出脚本会先生成临时目录：
+
+```text
+../app/android/unityExport/
+```
+
+然后自动复制其中的 `unityLibrary` 模块到 Flutter Android 工程需要的位置。
+
+导出后 Flutter App 使用：
+
+```bash
+flutter run --dart-define=FITGAME_USE_NATIVE_UNITY=true
+```
+
+如果不用菜单生成，手动搭建 `AvatarHomeScene` 时需要创建一个名为 `UnityBridge` 的 GameObject，挂载：
 
 - `UnityBridge`
 - `AvatarCommandRouter`
 
-并把 `UnityBridge.commandRouter` 指向同场景里的 Router。后续再把 Router 里的事件分发接到：
+并把 `UnityBridge.commandRouter` 指向同场景里的 Router。Router 需要绑定：
 
 - `AvatarAnimationController`
 - `AvatarAppearanceController`

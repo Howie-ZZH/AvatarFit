@@ -1,10 +1,20 @@
 using System;
+using FitGame.Avatar;
+using FitGame.Data;
+using FitGame.Utils;
 using UnityEngine;
 
 namespace FitGame.Bridge
 {
     public class AvatarCommandRouter : MonoBehaviour
     {
+        [SerializeField] private AvatarController avatarController;
+
+        public void Bind(AvatarController controller)
+        {
+            avatarController = controller;
+        }
+
         public void Route(
             string json,
             Action<string, string, string, string> dispatchEvent
@@ -38,20 +48,47 @@ namespace FitGame.Bridge
                 return;
             }
 
+            if (avatarController == null)
+            {
+                dispatchEvent(
+                    "UNITY_ERROR",
+                    command.requestId,
+                    "{}",
+                    "AvatarController is not bound"
+                );
+                return;
+            }
+
             switch (command.type)
             {
                 case "SET_AVATAR_STATE":
+                    avatarController.SetAvatarState(JsonUtil.FromJson<AvatarStateData>(payload));
                     dispatchEvent("UNITY_READY", command.requestId, payload, null);
                     break;
                 case "PLAY_ANIMATION":
+                    avatarController.PlayAnimation(JsonUtil.FromJson<PlayAnimationData>(payload).animationKey);
+                    dispatchEvent("ANIMATION_STARTED", command.requestId, payload, null);
+                    break;
                 case "START_EXERCISE":
+                    avatarController.StartExercise(JsonUtil.FromJson<StartExerciseData>(payload));
                     dispatchEvent("ANIMATION_STARTED", command.requestId, payload, null);
                     break;
                 case "WORKOUT_COMPLETE":
+                    avatarController.WorkoutComplete(JsonUtil.FromJson<WorkoutCompleteData>(payload));
                     dispatchEvent("ANIMATION_FINISHED", command.requestId, payload, null);
                     break;
                 case "CHANGE_OUTFIT":
+                    avatarController.ChangeOutfit(JsonUtil.FromJson<ChangeOutfitData>(payload));
                     dispatchEvent("OUTFIT_CHANGED", command.requestId, payload, null);
+                    break;
+                case "CAPTURE_SHARE_IMAGE":
+                    var path = avatarController.CaptureShareImage();
+                    dispatchEvent(
+                        "SHARE_IMAGE_CAPTURED",
+                        command.requestId,
+                        $"{{\"path\":\"{path.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"}}",
+                        null
+                    );
                     break;
                 default:
                     dispatchEvent(
@@ -95,6 +132,7 @@ namespace FitGame.Bridge
                 case "START_EXERCISE":
                 case "WORKOUT_COMPLETE":
                 case "CHANGE_OUTFIT":
+                case "CAPTURE_SHARE_IMAGE":
                     return true;
                 default:
                     return false;
