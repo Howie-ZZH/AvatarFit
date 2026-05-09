@@ -76,9 +76,9 @@ namespace FitGame.Editor
             var camera = cameraObject.AddComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.03f, 0.04f, 0.05f);
-            camera.fieldOfView = 35f;
-            cameraObject.transform.position = new Vector3(0f, 1.25f, -6f);
-            cameraObject.transform.LookAt(new Vector3(0f, 1.1f, 0f));
+            camera.fieldOfView = 34f;
+            cameraObject.transform.position = new Vector3(0f, 1.35f, -9.5f);
+            cameraObject.transform.LookAt(new Vector3(0f, 1.15f, 0f));
         }
 
         private static Light CreateLights()
@@ -102,9 +102,9 @@ namespace FitGame.Editor
         {
             var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
             floor.name = "TrainingFloor";
-            floor.transform.position = new Vector3(0f, -0.34f, 0f);
+            floor.transform.position = new Vector3(0f, -0.42f, 0f);
             floor.transform.localScale = new Vector3(5.5f, 0.04f, 5.5f);
-            floor.GetComponent<Renderer>().material.color = new Color(0.07f, 0.09f, 0.12f);
+            floor.GetComponent<Renderer>().material.color = new Color(0.035f, 0.045f, 0.06f);
         }
 
         private static GameObject CreateCapsule(string name, Transform parent, Vector3 position, Vector3 scale)
@@ -134,7 +134,7 @@ namespace FitGame.Editor
             var labelObject = new GameObject("AvatarLabel");
             labelObject.transform.SetParent(parent);
             labelObject.transform.localPosition = new Vector3(0f, 2.55f, 0f);
-            labelObject.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            labelObject.transform.localRotation = Quaternion.identity;
             var label = labelObject.AddComponent<TextMesh>();
             label.text = "Lv.1 Rex";
             label.anchor = TextAnchor.MiddleCenter;

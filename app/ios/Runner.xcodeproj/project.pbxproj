@@ -153,6 +153,7 @@
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
+				7B1010012EC3D50000C636F2 /* Embed Unity Framework */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 			);
 			buildRules = (
@@ -240,6 +241,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
+		};
+		7B1010012EC3D50000C636F2 /* Embed Unity Framework */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/UnityLibrary/Build/DerivedData/Build/Products/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/UnityFramework.framework",
+				"$(SRCROOT)/UnityLibrary/Data",
+			);
+			name = "Embed Unity Framework";
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/UnityFramework.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nUNITY_PRODUCTS_DIR=\"${SRCROOT}/UnityLibrary/Build/DerivedData/Build/Products/${CONFIGURATION}${EFFECTIVE_PLATFORM_NAME}\"\nUNITY_FRAMEWORK=\"${UNITY_PRODUCTS_DIR}/UnityFramework.framework\"\nUNITY_DATA=\"${SRCROOT}/UnityLibrary/Data\"\nTARGET_FRAMEWORKS_DIR=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\nTARGET_UNITY_FRAMEWORK=\"${TARGET_FRAMEWORKS_DIR}/UnityFramework.framework\"\n\nif [ ! -d \"$UNITY_FRAMEWORK\" ]; then\n  echo \"error: UnityFramework.framework not found at $UNITY_FRAMEWORK. Build app/ios/UnityLibrary/Unity-iPhone.xcodeproj scheme UnityFramework first.\"\n  exit 1\nfi\n\nif [ ! -d \"$UNITY_DATA\" ]; then\n  echo \"error: Unity Data folder not found at $UNITY_DATA. Export Unity iOS Library first.\"\n  exit 1\nfi\n\nmkdir -p \"$TARGET_FRAMEWORKS_DIR\"\nrm -rf \"$TARGET_UNITY_FRAMEWORK\"\ncp -R \"$UNITY_FRAMEWORK\" \"$TARGET_FRAMEWORKS_DIR/\"\nrm -rf \"$TARGET_UNITY_FRAMEWORK/Data\"\ncp -R \"$UNITY_DATA\" \"$TARGET_UNITY_FRAMEWORK/Data\"\n\nSIGN_IDENTITY=\"${EXPANDED_CODE_SIGN_IDENTITY:-}\"\nif [ -z \"$SIGN_IDENTITY\" ]; then\n  SIGN_IDENTITY=\"-\"\nfi\n/usr/bin/codesign --force --sign \"$SIGN_IDENTITY\" --timestamp=none \"$TARGET_UNITY_FRAMEWORK\"\n";
 		};
 		9740EEB61CF901F6004384FC /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;

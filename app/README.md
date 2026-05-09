@@ -80,8 +80,17 @@ flutter run
 ```bash
 flutter run \
   --dart-define=FITGAME_USE_REMOTE_API=true \
-  --dart-define=FITGAME_API_BASE_URL=http://localhost:8080
+  --dart-define=FITGAME_API_BASE_URL=http://127.0.0.1:8080
 ```
+
+本地联调地址按运行环境选择：
+
+- iOS 模拟器：`http://127.0.0.1:8080`
+- iPhone 真机：Mac 的局域网 IP，例如 `http://192.168.x.x:8080`
+- Android 模拟器：`http://10.0.2.2:8080`
+- Android 真机：Mac 的局域网 IP，例如 `http://192.168.x.x:8080`
+
+iOS 工程已为本地 HTTP 调试配置 `NSAllowsLocalNetworking`。真机访问本机后端时，需要确保手机和 Mac 在同一网络，且 macOS 防火墙允许访问 8080 端口。
 
 ## 切换真实 Unity
 

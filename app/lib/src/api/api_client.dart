@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -11,6 +12,7 @@ class ApiClient {
   final Uri baseUri;
   final String? accessToken;
   final HttpClient _httpClient;
+  static const _timeout = Duration(seconds: 12);
 
   Future<Map<String, Object?>> getJson(String path) async {
     final request = await _open('GET', path);
@@ -43,7 +45,7 @@ class ApiClient {
 
   Future<HttpClientRequest> _open(String method, String path) async {
     final uri = baseUri.resolve(path);
-    final request = await _httpClient.openUrl(method, uri);
+    final request = await _httpClient.openUrl(method, uri).timeout(_timeout);
     request.headers.set(HttpHeaders.acceptHeader, ContentType.json.mimeType);
     final token = accessToken;
     if (token != null && token.isNotEmpty) {
@@ -53,26 +55,60 @@ class ApiClient {
   }
 
   Future<Map<String, Object?>> _sendForJson(HttpClientRequest request) async {
-    final response = await request.close();
-    final text = await utf8.decodeStream(response);
-    final statusCode = response.statusCode;
-    if (statusCode < 200 || statusCode >= 300) {
+    try {
+      final response = await request.close().timeout(_timeout);
+      final text = await utf8.decodeStream(response).timeout(_timeout);
+      final statusCode = response.statusCode;
+      if (statusCode < 200 || statusCode >= 300) {
+        throw ApiException(
+          statusCode: statusCode,
+          message: _readErrorMessage(text, response.reasonPhrase),
+        );
+      }
+      if (text.isEmpty) {
+        return const {};
+      }
+      final decoded = jsonDecode(text);
+      if (decoded is Map<String, Object?>) {
+        return decoded;
+      }
+      if (decoded is Map) {
+        return decoded.map((key, value) => MapEntry('$key', value));
+      }
+      throw const FormatException('Expected a JSON object response.');
+    } on TimeoutException {
+      throw const ApiException(
+        statusCode: 0,
+        message: '请求超时，请确认后端服务是否已启动。',
+      );
+    } on SocketException catch (error) {
       throw ApiException(
-        statusCode: statusCode,
-        message: text.isEmpty ? response.reasonPhrase : text,
+        statusCode: 0,
+        message: '无法连接后端服务：${error.message}',
       );
     }
+  }
+
+  String _readErrorMessage(String text, String fallback) {
     if (text.isEmpty) {
-      return const {};
+      return fallback;
     }
-    final decoded = jsonDecode(text);
-    if (decoded is Map<String, Object?>) {
-      return decoded;
+    try {
+      final decoded = jsonDecode(text);
+      if (decoded is Map) {
+        final message = decoded['message'];
+        if (message is String && message.isNotEmpty) {
+          return message;
+        }
+        final error = decoded['error'];
+        if (error is String && error.isNotEmpty) {
+          return error;
+        }
+      }
+    } catch (_) {
+      // Fall back to the raw response text below.
     }
-    if (decoded is Map) {
-      return decoded.map((key, value) => MapEntry('$key', value));
-    }
-    throw const FormatException('Expected a JSON object response.');
+    return text;
   }
 }
 
@@ -86,5 +122,5 @@ class ApiException implements Exception {
   final String message;
 
   @override
-  String toString() => 'ApiException($statusCode): $message';
+  String toString() => message;
 }

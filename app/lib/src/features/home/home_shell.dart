@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/avatar_models.dart';
 import '../../models/workout_models.dart';
+import '../training/test_workout_page.dart';
 import '../unity_bridge/unity_avatar_view.dart';
 import '../unity_bridge/unity_bridge_service.dart';
 
@@ -10,10 +11,12 @@ class HomeShell extends StatefulWidget {
     super.key,
     required this.avatar,
     required this.unity,
+    required this.onRestartDemo,
   });
 
   final AvatarState avatar;
   final UnityBridgeService unity;
+  final VoidCallback onRestartDemo;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -21,15 +24,40 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   var _index = 0;
+  late AvatarState _avatar;
+  bool _showWorkout = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _avatar = widget.avatar;
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_showWorkout) {
+      return TestWorkoutPage(
+        avatar: _avatar,
+        unity: widget.unity,
+        onCompleted: (updatedAvatar) {
+          setState(() {
+            _avatar = updatedAvatar;
+            _showWorkout = false;
+            _index = 0;
+          });
+        },
+      );
+    }
+
     final pages = [
-      _AvatarTab(avatar: widget.avatar, unity: widget.unity),
-      _TrainingTab(unity: widget.unity),
+      _AvatarTab(avatar: _avatar, unity: widget.unity),
+      _TrainingTab(
+        unity: widget.unity,
+        onStartWorkout: () => setState(() => _showWorkout = true),
+      ),
       const _CourseTab(),
       const _CoachTab(),
-      const _MineTab(),
+      _MineTab(onRestartDemo: widget.onRestartDemo),
     ];
 
     return Scaffold(
@@ -152,9 +180,13 @@ class _AvatarTab extends StatelessWidget {
 }
 
 class _TrainingTab extends StatelessWidget {
-  const _TrainingTab({required this.unity});
+  const _TrainingTab({
+    required this.unity,
+    required this.onStartWorkout,
+  });
 
   final UnityBridgeService unity;
+  final VoidCallback onStartWorkout;
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +198,12 @@ class _TrainingTab extends StatelessWidget {
         Text(
           '预计 3 分钟，完成后获得 XP 和属性成长。',
           style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 18),
+        FilledButton.icon(
+          onPressed: onStartWorkout,
+          icon: const Icon(Icons.play_arrow_rounded),
+          label: const Text('开始今日训练'),
         ),
         const SizedBox(height: 20),
         ...testWorkout.map(
@@ -220,14 +258,39 @@ class _CoachTab extends StatelessWidget {
 }
 
 class _MineTab extends StatelessWidget {
-  const _MineTab();
+  const _MineTab({required this.onRestartDemo});
+
+  final VoidCallback onRestartDemo;
 
   @override
   Widget build(BuildContext context) {
-    return const _PlaceholderTab(
-      title: '我的',
-      body: '个人资料、身体数据、成就、订阅和隐私设置预留在这里。',
-      icon: Icons.person_rounded,
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.person_rounded,
+              size: 52,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 18),
+            Text('我的', style: Theme.of(context).textTheme.headlineMedium),
+            const SizedBox(height: 8),
+            const Text(
+              '个人资料、身体数据、成就、订阅和隐私设置预留在这里。',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 22),
+            OutlinedButton.icon(
+              onPressed: onRestartDemo,
+              icon: const Icon(Icons.restart_alt_rounded),
+              label: const Text('重新开始 Demo'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

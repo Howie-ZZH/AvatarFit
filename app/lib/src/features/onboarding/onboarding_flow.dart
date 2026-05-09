@@ -7,6 +7,7 @@ import '../../features/training/test_workout_page.dart';
 import '../../features/unity_bridge/native_unity_bridge_service.dart';
 import '../../features/unity_bridge/unity_avatar_view.dart';
 import '../../features/unity_bridge/unity_bridge_service.dart';
+import '../../api/api_client.dart';
 import '../../api/api_config.dart';
 import '../../models/avatar_models.dart';
 import '../../models/onboarding_models.dart';
@@ -62,6 +63,21 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   }
 
   void _next() => setState(() => _step += 1);
+
+  void _restartDemo() {
+    setState(() {
+      _avatar = const AvatarState();
+      _bodyProfile = const BodyProfileDraft();
+      _accessToken = null;
+      _error = null;
+      _unityStatus = null;
+      _isBusy = false;
+      _step = 1;
+      _goal = '减脂';
+      _experience = 'beginner';
+    });
+    _unity.setAvatarState(_avatar);
+  }
 
   Future<void> _submitAuth(AuthCredentials credentials, bool login) async {
     await _runStep(() async {
@@ -126,7 +142,15 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       if (!mounted) {
         return;
       }
-      setState(() => _error = '$error');
+      if (error is ApiException && error.statusCode == 401) {
+        setState(() {
+          _accessToken = null;
+          _step = 1;
+          _error = '登录已失效，请重新登录后继续。';
+        });
+      } else {
+        setState(() => _error = '$error');
+      }
     } finally {
       if (mounted) {
         setState(() => _isBusy = false);
@@ -194,7 +218,11 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           avatar: _avatar,
           onEnterHome: _next,
         ),
-      _ => HomeShell(avatar: _avatar, unity: _unity),
+      _ => HomeShell(
+          avatar: _avatar,
+          unity: _unity,
+          onRestartDemo: _restartDemo,
+        ),
     };
   }
 }
@@ -292,8 +320,14 @@ class _AuthStep extends StatefulWidget {
 }
 
 class _AuthStepState extends State<_AuthStep> {
-  final _emailController = TextEditingController(text: 'demo@fitgame.local');
+  late final TextEditingController _emailController;
   final _passwordController = TextEditingController(text: 'password123');
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: _newDemoEmail());
+  }
 
   @override
   void dispose() {
@@ -310,6 +344,14 @@ class _AuthStepState extends State<_AuthStep> {
       ),
       login,
     );
+  }
+
+  String _newDemoEmail() {
+    return 'demo+${DateTime.now().millisecondsSinceEpoch}@fitgame.local';
+  }
+
+  void _replaceDemoEmail() {
+    setState(() => _emailController.text = _newDemoEmail());
   }
 
   @override
@@ -350,6 +392,12 @@ class _AuthStepState extends State<_AuthStep> {
           OutlinedButton(
             onPressed: widget.isBusy ? null : () => _submit(true),
             child: const Text('已有账号，登录'),
+          ),
+          const SizedBox(height: 10),
+          TextButton.icon(
+            onPressed: widget.isBusy ? null : _replaceDemoEmail,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('换一个演示账号'),
           ),
         ],
       ),

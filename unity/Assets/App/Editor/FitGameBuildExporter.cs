@@ -45,18 +45,35 @@ namespace FitGame.Editor
         [MenuItem("FitGame/Export iOS Library")]
         public static void ExportIosLibrary()
         {
+            ExportIosLibrary(iOSSdkVersion.SimulatorSDK, "iOS Simulator");
+        }
+
+        [MenuItem("FitGame/Export iOS Device Library")]
+        public static void ExportIosDeviceLibrary()
+        {
+            ExportIosLibrary(iOSSdkVersion.DeviceSDK, "iOS Device");
+        }
+
+        private static void ExportIosLibrary(iOSSdkVersion sdkVersion, string platformLabel)
+        {
             EnsureScene();
             EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.iOS, BuildTarget.iOS);
+            PlayerSettings.iOS.sdkVersion = sdkVersion;
+            if (sdkVersion == iOSSdkVersion.SimulatorSDK)
+            {
+                PlayerSettings.iOS.simulatorSdkArchitecture = AppleMobileArchitectureSimulator.ARM64;
+            }
 
             var outputPath = Path.GetFullPath("../app/ios/UnityLibrary");
             CleanDirectory(outputPath);
+            Debug.Log($"FitGame exporting {platformLabel} Unity library with SDK: {sdkVersion}");
             var report = BuildPipeline.BuildPlayer(
                 new[] { ScenePath },
                 outputPath,
                 BuildTarget.iOS,
                 BuildOptions.None
             );
-            LogReport("iOS", outputPath, report);
+            LogReport(platformLabel, outputPath, report);
         }
 
         private static void EnsureScene()

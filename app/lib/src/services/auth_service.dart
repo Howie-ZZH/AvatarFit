@@ -34,11 +34,18 @@ class RemoteAuthService extends AuthService {
 
   @override
   Future<AuthSession> register(AuthCredentials credentials) async {
-    final json = await apiClient.postJson(
-      '/api/auth/register',
-      body: credentials.toRegisterJson(),
-    );
-    return AuthSession.fromJson(json);
+    try {
+      final json = await apiClient.postJson(
+        '/api/auth/register',
+        body: credentials.toRegisterJson(),
+      );
+      return AuthSession.fromJson(json);
+    } on ApiException catch (error) {
+      if (error.statusCode != 409) {
+        rethrow;
+      }
+      return login(credentials);
+    }
   }
 
   @override

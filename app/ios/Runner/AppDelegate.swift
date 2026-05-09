@@ -7,6 +7,7 @@ private let unityEventsChannel = "fitgame/unity_events"
 private let unityViewType = "fitgame/unity_view"
 private let unityBridgeObject = "UnityBridge"
 private let unityBridgeMethod = "PostMessage"
+private let unityEventNotification = Notification.Name("FitGameUnityEvent")
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -60,6 +61,18 @@ private let unityBridgeMethod = "PostMessage"
       binaryMessenger: messenger
     ).setStreamHandler(FitGameUnityEventStream.shared)
 
+    NotificationCenter.default.addObserver(
+      forName: unityEventNotification,
+      object: nil,
+      queue: .main
+    ) { notification in
+      if let json = notification.object as? String {
+        FitGameUnityEventStream.emit(json)
+      } else if let json = notification.object as? NSString {
+        FitGameUnityEventStream.emit(json as String)
+      }
+    }
+
     registrar.register(
       FitGameUnityViewFactory(),
       withId: unityViewType
@@ -82,18 +95,15 @@ final class FitGameUnityViewFactory: NSObject, FlutterPlatformViewFactory {
 }
 
 final class FitGameUnityPlatformView: NSObject, FlutterPlatformView {
-  private let container: UIView
+  private let container: FitGameUnityContainerView
 
   init(frame: CGRect) {
-    container = UIView(frame: frame)
+    container = FitGameUnityContainerView(frame: frame)
     container.backgroundColor = UIColor(red: 0.03, green: 0.04, blue: 0.05, alpha: 1)
     super.init()
 
     if let unityView = FitGameUnityRuntime.shared.attach() {
-      unityView.removeFromSuperview()
-      unityView.frame = container.bounds
-      unityView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-      container.addSubview(unityView)
+      container.attach(unityView)
     } else {
       let label = UILabel(frame: container.bounds.insetBy(dx: 20, dy: 20))
       label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -106,6 +116,44 @@ final class FitGameUnityPlatformView: NSObject, FlutterPlatformView {
 
   func view() -> UIView {
     container
+  }
+}
+
+final class FitGameUnityContainerView: UIView {
+  private weak var unityView: UIView?
+
+  func attach(_ view: UIView) {
+    unityView = view
+    view.removeFromSuperview()
+    view.isUserInteractionEnabled = false
+    view.frame = bounds
+    view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    addSubview(view)
+    refreshUnitySurface()
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    unityView?.frame = bounds
+    refreshUnitySurface()
+  }
+
+  private func refreshUnitySurface() {
+    guard let unityView else {
+      return
+    }
+    unityView.setNeedsLayout()
+    unityView.layoutIfNeeded()
+    callOptionalSelector("updateLayerDrawableSizeFromBounds", on: unityView)
+    callOptionalSelector("updateUnityBackbufferSize", on: unityView)
+    callOptionalSelector("recreateRenderingSurfaceIfNeeded", on: unityView)
+  }
+
+  private func callOptionalSelector(_ name: String, on object: NSObject) {
+    let selector = NSSelectorFromString(name)
+    if object.responds(to: selector) {
+      object.perform(selector)
+    }
   }
 }
 
@@ -124,8 +172,10 @@ final class FitGameUnityRuntime {
       return nil
     }
     unityFramework = framework
+    setDataBundleId(framework)
     runEmbedded(framework)
     unityView = readUnityView(framework)
+    restoreFlutterWindowFocus()
     flushPendingMessages()
     return unityView
   }
@@ -168,6 +218,23 @@ final class FitGameUnityRuntime {
     return framework
   }
 
+  private func setDataBundleId(_ framework: NSObject) {
+    let selector = NSSelectorFromString("setDataBundleId:")
+    guard framework.responds(to: selector) else {
+      return
+    }
+    typealias SetDataBundleId = @convention(c) (
+      NSObject,
+      Selector,
+      UnsafePointer<CChar>
+    ) -> Void
+    let implementation = framework.method(for: selector)
+    let set = unsafeBitCast(implementation, to: SetDataBundleId.self)
+    "com.unity3d.framework".withCString { bundleId in
+      set(framework, selector, bundleId)
+    }
+  }
+
   private func runEmbedded(_ framework: NSObject) {
     let selector = NSSelectorFromString("runEmbeddedWithArgc:argv:appLaunchOpts:")
     guard framework.responds(to: selector) else {
@@ -185,6 +252,32 @@ final class FitGameUnityRuntime {
     run(framework, selector, CommandLine.argc, CommandLine.unsafeArgv, nil)
   }
 
+  private func restoreFlutterWindowFocus() {
+    DispatchQueue.main.async {
+      let windows = UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+        .flatMap(\.windows)
+      guard
+        let flutterWindow = windows.first(where: { window in
+          window.rootViewController is FlutterViewController ||
+            String(describing: type(of: window)).contains("Flutter")
+        })
+      else {
+        return
+      }
+
+      for window in windows where window !== flutterWindow {
+        let controllerName = window.rootViewController
+          .map { String(describing: type(of: $0)) } ?? ""
+        if controllerName.contains("Unity") {
+          window.isUserInteractionEnabled = false
+          window.windowLevel = .normal - 1
+        }
+      }
+      flutterWindow.makeKeyAndVisible()
+    }
+  }
+
   private func readUnityView(_ framework: NSObject) -> UIView? {
     let appControllerSelector = NSSelectorFromString("appController")
     guard
@@ -194,6 +287,15 @@ final class FitGameUnityRuntime {
         .takeUnretainedValue() as? NSObject
     else {
       return nil
+    }
+    let unityViewSelector = NSSelectorFromString("unityView")
+    if
+      controller.responds(to: unityViewSelector),
+      let unityView = controller
+        .perform(unityViewSelector)?
+        .takeUnretainedValue() as? UIView
+    {
+      return unityView
     }
     let rootViewSelector = NSSelectorFromString("rootView")
     return controller

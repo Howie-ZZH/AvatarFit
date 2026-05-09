@@ -48,7 +48,7 @@ unity/
 推荐 Unity 版本：
 
 ```text
-2022.3 LTS
+Unity 6.3 LTS
 ```
 
 首次打开后，在 Unity 菜单执行：
