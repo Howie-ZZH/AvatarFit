@@ -14,6 +14,82 @@
   -> 能生成分享图
 ```
 
+## 1.1 当前角色资产决策
+
+用户已明确要求最终角色达到高保真效果，因此后续不要继续把 Unity primitive / lowfi blockout 当作产品视觉方向。
+
+当前策略：
+
+- 低保真 Unity / Blender blockout：只用于工程占位和链路验证。
+- 2D 高质量角色立绘：只用于 App 视觉过渡。
+- 正式高保真 3D：优先通过现成 Unity Humanoid 资产、Ready Player Me / VRM 资产或外包定制获得。
+
+关键判断：
+
+- FBX Exporter 不是高保真来源，它只是导入 / 导出工具。
+- 高保真的核心是模型、材质、绑定和动画资产本身。
+- 如果团队没有 3D 角色美术能力，不应把时间投入到继续手搓几何体角色。
+
+## 1.2 路线 A：现成资产优先
+
+适用于快速做 Demo。
+
+资产来源：
+
+```text
+Unity Asset Store
+Ready Player Me
+VRoid / VRM 生态
+BOOTH / Sketchfab / CGTrader 等明确授权平台
+```
+
+搜索关键词：
+
+```text
+anime male humanoid character
+stylized male humanoid character
+sportswear male character
+rigged humanoid animated male
+free anime character humanoid
+```
+
+筛选条件：
+
+- 可导入 Unity
+- 最好支持 Humanoid
+- 风格接近半写实动漫 / 运动主角
+- 授权允许当前项目使用，商业化前必须复核许可证
+- 材质可调整为黑 / 深灰 + 青绿色
+- 面数和贴图适合移动端
+
+成本判断：
+
+- 免费资产可以试，但质量、授权和绑定稳定性不可控。
+- 低价付费资产通常更省时间，适合先跑 MVP。
+- 外包定制质量最高，但成本和周期明显更高。
+
+## 1.3 现成资产验收清单
+
+购买或下载前先检查：
+
+- [ ] 有 Unity package、FBX、GLB、VRM 或明确 Unity 导入说明
+- [ ] 骨骼为 Humanoid 或可转 Humanoid
+- [ ] 模型不是静态无骨骼
+- [ ] 有正面全身展示图
+- [ ] 有材质 / 贴图文件
+- [ ] 没有第三方品牌 Logo 或侵权元素
+- [ ] 授权允许 Demo / 商业使用，或至少允许内部原型验证
+- [ ] 面数不明显超出移动端预算
+- [ ] 风格不偏 Q 版宠物、机器人或重甲战士
+
+导入后检查：
+
+- [ ] Unity Avatar 可配置为 Humanoid
+- [ ] `idle_default` 可播放或可用 Mixamo / Unity 动画重定向
+- [ ] 深蹲、开合跳等动作不严重穿模
+- [ ] 竖屏首屏全身可见
+- [ ] 黑灰服装和青绿色高光能通过材质调整接近 Rex
+
 ## 2. 角色视觉方向
 
 ### 2.1 风格

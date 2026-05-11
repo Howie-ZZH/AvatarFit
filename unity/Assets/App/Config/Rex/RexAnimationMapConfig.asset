@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f4d15c90518464ba5b829f2fe3e8ef8, type: 3}
+  m_Name: RexAnimationMapConfig
+  m_EditorClassIdentifier: FitGame.Unity::FitGame.Config.AnimationMapConfig
+  entries:
+  - animationKey: idle_default
+    stateName: idle_default
+    clip: {fileID: 7400000, guid: ae416e77c985e433b8c0c4215dad2e8f, type: 2}
+    loop: 1
+    transitionSeconds: 0.15
+  - animationKey: idle_confident
+    stateName: idle_confident
+    clip: {fileID: 7400000, guid: 574168d7a54534986a10d8de823e1e79, type: 2}
+    loop: 1
+    transitionSeconds: 0.15
+  - animationKey: intro_hero
+    stateName: intro_hero
+    clip: {fileID: 7400000, guid: 0d79fe471d51a40d6b37d3489bfc7173, type: 2}
+    loop: 0
+    transitionSeconds: 0.15
+  - animationKey: result_success
+    stateName: result_success
+    clip: {fileID: 7400000, guid: bb1a82a5b95e64f63a013e5b15e617dd, type: 2}
+    loop: 0
+    transitionSeconds: 0.15
+  - animationKey: result_level_up
+    stateName: result_level_up
+    clip: {fileID: 7400000, guid: 2fbeb0c4c14e0464eac9381235d5b1b8, type: 2}
+    loop: 0
+    transitionSeconds: 0.15
+  - animationKey: workout_squat
+    stateName: workout_squat
+    clip: {fileID: 7400000, guid: aded04950fd8b4838a4b3b01d75b3453, type: 2}
+    loop: 1
+    transitionSeconds: 0.15
+  - animationKey: workout_jumping_jack
+    stateName: workout_jumping_jack
+    clip: {fileID: 7400000, guid: f37ea3b3f2cf34529b67a73c0a0d5771, type: 2}
+    loop: 1
+    transitionSeconds: 0.15
+  - animationKey: workout_plank
+    stateName: workout_plank
+    clip: {fileID: 7400000, guid: 4d82d7e1e41aa4b4a9b85b206771f4e8, type: 2}
+    loop: 1
+    transitionSeconds: 0.15
+  - animationKey: workout_stretch
+    stateName: workout_stretch
+    clip: {fileID: 7400000, guid: 24ec459818481461abdc17c1287381e5, type: 2}
+    loop: 1
+    transitionSeconds: 0.15
+  - animationKey: pose_share_01
+    stateName: pose_share_01
+    clip: {fileID: 7400000, guid: bb4b178972bbe466eaf8544c3c090347, type: 2}
+    loop: 0
+    transitionSeconds: 0.15

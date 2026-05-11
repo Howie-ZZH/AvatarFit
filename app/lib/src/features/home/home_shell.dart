@@ -26,6 +26,7 @@ class _HomeShellState extends State<HomeShell> {
   var _index = 0;
   late AvatarState _avatar;
   bool _showWorkout = false;
+  bool _workoutCompletedToday = false;
 
   @override
   void initState() {
@@ -44,15 +45,21 @@ class _HomeShellState extends State<HomeShell> {
             _avatar = updatedAvatar;
             _showWorkout = false;
             _index = 0;
+            _workoutCompletedToday = true;
           });
         },
       );
     }
 
     final pages = [
-      _AvatarTab(avatar: _avatar, unity: widget.unity),
+      _AvatarTab(
+        avatar: _avatar,
+        unity: widget.unity,
+        workoutCompletedToday: _workoutCompletedToday,
+      ),
       _TrainingTab(
         unity: widget.unity,
+        workoutCompletedToday: _workoutCompletedToday,
         onStartWorkout: () => setState(() => _showWorkout = true),
       ),
       const _CourseTab(),
@@ -93,10 +100,15 @@ class _HomeShellState extends State<HomeShell> {
 }
 
 class _AvatarTab extends StatelessWidget {
-  const _AvatarTab({required this.avatar, required this.unity});
+  const _AvatarTab({
+    required this.avatar,
+    required this.unity,
+    required this.workoutCompletedToday,
+  });
 
   final AvatarState avatar;
   final UnityBridgeService unity;
+  final bool workoutCompletedToday;
 
   @override
   Widget build(BuildContext context) {
@@ -109,8 +121,11 @@ class _AvatarTab extends StatelessWidget {
       '恢复': avatar.attributes.recovery,
     };
 
+    final xpProgress =
+        avatar.xpToNextLevel <= 0 ? 0.0 : avatar.xp / avatar.xpToNextLevel;
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 112),
       children: [
         Row(
           children: [
@@ -122,7 +137,11 @@ class _AvatarTab extends StatelessWidget {
             ),
             IconButton(
               tooltip: '分享',
-              onPressed: () {},
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('分享图功能将在 Demo 打磨阶段接入')),
+                );
+              },
               icon: const Icon(Icons.ios_share_rounded),
             ),
           ],
@@ -132,7 +151,9 @@ class _AvatarTab extends StatelessWidget {
           avatar: avatar,
           animationKey: 'idle_confident',
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
+        _WorkoutStatusLine(completed: workoutCompletedToday),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
@@ -145,10 +166,16 @@ class _AvatarTab extends StatelessWidget {
             Expanded(
               child: _MetricLine(
                 label: '状态',
-                value: avatar.energyState,
+                value: _energyLabel(avatar.energyState),
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 16),
+        _XpProgressLine(
+          xp: avatar.xp,
+          xpToNextLevel: avatar.xpToNextLevel,
+          progress: xpProgress.clamp(0, 1),
         ),
         const SizedBox(height: 18),
         Text('属性成长', style: Theme.of(context).textTheme.titleLarge),
@@ -160,10 +187,18 @@ class _AvatarTab extends StatelessWidget {
               children: [
                 SizedBox(width: 44, child: Text(entry.key)),
                 Expanded(
-                  child: LinearProgressIndicator(value: entry.value / 20),
+                  child: LinearProgressIndicator(
+                    value: (entry.value / 20).clamp(0, 1),
+                  ),
                 ),
                 const SizedBox(width: 12),
-                SizedBox(width: 24, child: Text('${entry.value}')),
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    '${entry.value}',
+                    textAlign: TextAlign.right,
+                  ),
+                ),
               ],
             ),
           ),
@@ -182,21 +217,25 @@ class _AvatarTab extends StatelessWidget {
 class _TrainingTab extends StatelessWidget {
   const _TrainingTab({
     required this.unity,
+    required this.workoutCompletedToday,
     required this.onStartWorkout,
   });
 
   final UnityBridgeService unity;
+  final bool workoutCompletedToday;
   final VoidCallback onStartWorkout;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 112),
       children: [
         Text('今日训练', style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 8),
         Text(
-          '预计 3 分钟，完成后获得 XP 和属性成长。',
+          workoutCompletedToday
+              ? '今日训练已完成，可以再次演示训练流程。'
+              : '预计 3 分钟，完成后获得 XP 和属性成长。',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 18),
@@ -227,6 +266,100 @@ class _TrainingTab extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+String _energyLabel(String value) {
+  return switch (value) {
+    'confident' => '自信',
+    'energized' => '活力充沛',
+    'tired' => '疲劳',
+    'normal' => '正常',
+    _ => value,
+  };
+}
+
+class _WorkoutStatusLine extends StatelessWidget {
+  const _WorkoutStatusLine({required this.completed});
+
+  final bool completed;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = completed
+        ? Theme.of(context).colorScheme.primary
+        : const Color(0xFFFFC857);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF10141B),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF252B36)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              completed
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              color: color,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                completed ? '今日训练已完成' : '今日训练待完成',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _XpProgressLine extends StatelessWidget {
+  const _XpProgressLine({
+    required this.xp,
+    required this.xpToNextLevel,
+    required this.progress,
+  });
+
+  final int xp;
+  final int xpToNextLevel;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF10141B),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF252B36)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '升级进度',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+                Text('$xp / $xpToNextLevel XP'),
+              ],
+            ),
+            const SizedBox(height: 10),
+            LinearProgressIndicator(value: progress),
+          ],
+        ),
+      ),
     );
   }
 }

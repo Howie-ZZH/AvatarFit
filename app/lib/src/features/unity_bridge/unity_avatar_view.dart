@@ -7,17 +7,24 @@ import 'package:flutter/services.dart';
 import '../../api/api_config.dart';
 import '../../models/avatar_models.dart';
 
+const _useHeroArtworkPreview = bool.fromEnvironment(
+  'FITGAME_USE_HERO_ARTWORK_PREVIEW',
+  defaultValue: true,
+);
+
 class UnityAvatarView extends StatefulWidget {
   const UnityAvatarView({
     super.key,
     required this.avatar,
     this.animationKey = 'idle_default',
     this.compact = false,
+    this.showDebugBadge = false,
   });
 
   final AvatarState avatar;
   final String animationKey;
   final bool compact;
+  final bool showDebugBadge;
 
   @override
   State<UnityAvatarView> createState() => _UnityAvatarViewState();
@@ -49,17 +56,120 @@ class _UnityAvatarViewState extends State<UnityAvatarView>
     return SizedBox(
       height: height,
       width: double.infinity,
-      child: kUseNativeUnityView && (Platform.isAndroid || Platform.isIOS)
-          ? _NativeUnitySurface(
-              avatar: widget.avatar,
-              animationKey: widget.animationKey,
-            )
-          : _MockUnitySurface(
+      child: _useHeroArtworkPreview
+          ? _HeroArtworkSurface(
               avatar: widget.avatar,
               animationKey: widget.animationKey,
               compact: widget.compact,
               controller: _controller,
+              showDebugBadge: widget.showDebugBadge,
+            )
+          : (kUseNativeUnityView && (Platform.isAndroid || Platform.isIOS)
+              ? _NativeUnitySurface(
+                  avatar: widget.avatar,
+                  animationKey: widget.animationKey,
+                  showDebugBadge: widget.showDebugBadge,
+                )
+              : _MockUnitySurface(
+                  avatar: widget.avatar,
+                  animationKey: widget.animationKey,
+                  compact: widget.compact,
+                  controller: _controller,
+                  showDebugBadge: widget.showDebugBadge,
+                )),
+    );
+  }
+}
+
+class _HeroArtworkSurface extends StatelessWidget {
+  const _HeroArtworkSurface({
+    required this.avatar,
+    required this.animationKey,
+    required this.compact,
+    required this.controller,
+    required this.showDebugBadge,
+  });
+
+  final AvatarState avatar;
+  final String animationKey;
+  final bool compact;
+  final AnimationController controller;
+  final bool showDebugBadge;
+
+  @override
+  Widget build(BuildContext context) {
+    final isIntro = animationKey == 'intro_hero';
+    final isWorkout =
+        animationKey.startsWith('workout') || animationKey == 'START_EXERCISE';
+    final avatarName = avatar.name.trim().isEmpty ? 'Rex' : avatar.name.trim();
+    final avatarLevel = avatar.level <= 0 ? 1 : avatar.level;
+    final imageHeight = compact
+        ? 218.0
+        : isIntro
+            ? 500.0
+            : 342.0;
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Color(0xFF05080B),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _TrainingSpacePainter(),
             ),
+          ),
+          Positioned(
+            top: compact
+                ? 12
+                : isIntro
+                    ? 76
+                    : 16,
+            child: Text(
+              'Lv.$avatarLevel $avatarName',
+              style: (isIntro
+                      ? Theme.of(context).textTheme.headlineMedium
+                      : Theme.of(context).textTheme.titleMedium)
+                  ?.copyWith(
+                color: Colors.white,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+          AnimatedBuilder(
+            animation: controller,
+            builder: (context, child) {
+              final wave = math.sin(controller.value * math.pi);
+              final lift = wave * (isWorkout ? 14 : 7);
+              final scale = 1 + wave * (isWorkout ? 0.018 : 0.01);
+              return Transform.translate(
+                offset: Offset(0, -lift),
+                child: Transform.scale(scale: scale, child: child),
+              );
+            },
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: compact ? 4 : 0),
+                child: Image.asset(
+                  'assets/images/avatar_hero_fitgame.png',
+                  height: imageHeight,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                ),
+              ),
+            ),
+          ),
+          if (showDebugBadge)
+            Positioned(
+              left: 18,
+              top: 18,
+              child: _UnityBadge(animationKey: animationKey),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -68,10 +178,12 @@ class _NativeUnitySurface extends StatelessWidget {
   const _NativeUnitySurface({
     required this.avatar,
     required this.animationKey,
+    required this.showDebugBadge,
   });
 
   final AvatarState avatar;
   final String animationKey;
+  final bool showDebugBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -90,11 +202,12 @@ class _NativeUnitySurface extends StatelessWidget {
             creationParams: _creationParams,
             creationParamsCodec: const StandardMessageCodec(),
           ),
-        Positioned(
-          left: 18,
-          top: 18,
-          child: _UnityBadge(animationKey: animationKey),
-        ),
+        if (showDebugBadge)
+          Positioned(
+            left: 18,
+            top: 18,
+            child: _UnityBadge(animationKey: animationKey),
+          ),
       ],
     );
   }
@@ -111,12 +224,14 @@ class _MockUnitySurface extends StatelessWidget {
     required this.animationKey,
     required this.compact,
     required this.controller,
+    required this.showDebugBadge,
   });
 
   final AvatarState avatar;
   final String animationKey;
   final bool compact;
   final AnimationController controller;
+  final bool showDebugBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -147,11 +262,12 @@ class _MockUnitySurface extends StatelessWidget {
               compact: compact,
             ),
           ),
-          Positioned(
-            left: 18,
-            top: 18,
-            child: _UnityBadge(animationKey: animationKey),
-          ),
+          if (showDebugBadge)
+            Positioned(
+              left: 18,
+              top: 18,
+              child: _UnityBadge(animationKey: animationKey),
+            ),
           Positioned(
             right: 18,
             bottom: 18,

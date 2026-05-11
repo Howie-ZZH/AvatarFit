@@ -1,10 +1,13 @@
 using System.Collections;
+using FitGame.Config;
 using UnityEngine;
 
 namespace FitGame.Avatar
 {
     public class AvatarAnimationController : MonoBehaviour
     {
+        [SerializeField] private Animator animator;
+        [SerializeField] private AnimationMapConfig animationMap;
         [SerializeField] private Transform avatarRoot;
         [SerializeField] private Transform leftArm;
         [SerializeField] private Transform rightArm;
@@ -28,14 +31,51 @@ namespace FitGame.Avatar
             rightLeg = legRight;
         }
 
+        public void BindAnimator(Animator targetAnimator, AnimationMapConfig targetAnimationMap)
+        {
+            animator = targetAnimator;
+            animationMap = targetAnimationMap;
+        }
+
         public void Play(string animationKey)
         {
+            if (TryPlayAnimatorState(animationKey))
+            {
+                return;
+            }
+
             if (currentRoutine != null)
             {
                 StopCoroutine(currentRoutine);
             }
 
             currentRoutine = StartCoroutine(Animate(animationKey));
+        }
+
+        private bool TryPlayAnimatorState(string animationKey)
+        {
+            if (animator == null || animationMap == null)
+            {
+                return false;
+            }
+
+            if (!animationMap.TryGet(animationKey, out var entry))
+            {
+                Debug.LogWarning($"Animation key is not mapped: {animationKey}");
+                return false;
+            }
+
+            if (currentRoutine != null)
+            {
+                StopCoroutine(currentRoutine);
+                currentRoutine = null;
+            }
+
+            var stateName = string.IsNullOrWhiteSpace(entry.stateName)
+                ? animationKey
+                : entry.stateName;
+            animator.CrossFadeInFixedTime(stateName, Mathf.Max(0f, entry.transitionSeconds));
+            return true;
         }
 
         private IEnumerator Animate(string animationKey)
@@ -64,27 +104,27 @@ namespace FitGame.Avatar
             {
                 case "workout_squat":
                     avatarRoot.localScale = new Vector3(1f, 1f - Mathf.Abs(wave) * 0.18f, 1f);
-                    leftLeg.localRotation = Quaternion.Euler(0f, 0f, 8f + wave * 8f);
-                    rightLeg.localRotation = Quaternion.Euler(0f, 0f, -8f - wave * 8f);
+                    SetLocalRotation(leftLeg, Quaternion.Euler(0f, 0f, 8f + wave * 8f));
+                    SetLocalRotation(rightLeg, Quaternion.Euler(0f, 0f, -8f - wave * 8f));
                     break;
                 case "workout_jumping_jack":
-                    leftArm.localRotation = Quaternion.Euler(0f, 0f, 48f + wave * 30f);
-                    rightArm.localRotation = Quaternion.Euler(0f, 0f, -48f - wave * 30f);
-                    leftLeg.localRotation = Quaternion.Euler(0f, 0f, 12f + wave * 14f);
-                    rightLeg.localRotation = Quaternion.Euler(0f, 0f, -12f - wave * 14f);
+                    SetLocalRotation(leftArm, Quaternion.Euler(0f, 0f, 48f + wave * 30f));
+                    SetLocalRotation(rightArm, Quaternion.Euler(0f, 0f, -48f - wave * 30f));
+                    SetLocalRotation(leftLeg, Quaternion.Euler(0f, 0f, 12f + wave * 14f));
+                    SetLocalRotation(rightLeg, Quaternion.Euler(0f, 0f, -12f - wave * 14f));
                     break;
                 case "workout_plank":
                     avatarRoot.localRotation = Quaternion.Euler(70f, 0f, 0f);
                     avatarRoot.localPosition = new Vector3(0f, -0.55f + wave * 0.02f, 0f);
                     break;
                 case "workout_stretch":
-                    leftArm.localRotation = Quaternion.Euler(0f, 0f, 68f + wave * 10f);
-                    rightArm.localRotation = Quaternion.Euler(0f, 0f, -24f);
+                    SetLocalRotation(leftArm, Quaternion.Euler(0f, 0f, 68f + wave * 10f));
+                    SetLocalRotation(rightArm, Quaternion.Euler(0f, 0f, -24f));
                     break;
                 case "result_level_up":
                 case "result_success":
-                    leftArm.localRotation = Quaternion.Euler(0f, 0f, 78f);
-                    rightArm.localRotation = Quaternion.Euler(0f, 0f, -78f);
+                    SetLocalRotation(leftArm, Quaternion.Euler(0f, 0f, 78f));
+                    SetLocalRotation(rightArm, Quaternion.Euler(0f, 0f, -78f));
                     avatarRoot.localScale = Vector3.one * (1f + Mathf.Abs(wave) * 0.05f);
                     break;
                 default:
@@ -97,10 +137,18 @@ namespace FitGame.Avatar
         {
             avatarRoot.localRotation = Quaternion.identity;
             avatarRoot.localScale = Vector3.one;
-            leftArm.localRotation = Quaternion.Euler(0f, 0f, 16f);
-            rightArm.localRotation = Quaternion.Euler(0f, 0f, -16f);
-            leftLeg.localRotation = Quaternion.Euler(0f, 0f, 4f);
-            rightLeg.localRotation = Quaternion.Euler(0f, 0f, -4f);
+            SetLocalRotation(leftArm, Quaternion.Euler(0f, 0f, 16f));
+            SetLocalRotation(rightArm, Quaternion.Euler(0f, 0f, -16f));
+            SetLocalRotation(leftLeg, Quaternion.Euler(0f, 0f, 4f));
+            SetLocalRotation(rightLeg, Quaternion.Euler(0f, 0f, -4f));
+        }
+
+        private static void SetLocalRotation(Transform target, Quaternion rotation)
+        {
+            if (target != null)
+            {
+                target.localRotation = rotation;
+            }
         }
     }
 }

@@ -48,6 +48,13 @@ namespace FitGame.Editor
             ExportIosLibrary(iOSSdkVersion.SimulatorSDK, "iOS Simulator");
         }
 
+        [MenuItem("FitGame/Rebuild Avatar Scene and Export iOS Library")]
+        public static void RebuildAvatarSceneAndExportIosLibrary()
+        {
+            FitGameSceneBuilder.CreateScene();
+            ExportIosLibrary(iOSSdkVersion.SimulatorSDK, "iOS Simulator");
+        }
+
         [MenuItem("FitGame/Export iOS Device Library")]
         public static void ExportIosDeviceLibrary()
         {
